@@ -4,76 +4,82 @@ import { TaskCard } from '../models/Taskcard.model.js';
 import { User } from '../models/User.model.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
+import { json } from 'express';
 
 // Create a new task card
-  export const createTaskCard = async (req, res) => {
-    const { title, description, status, boardId, dueDate, priority, assignee } =
-      req.body;
+export const createTaskCard = async (req, res) => {
+  const { title, description, status, boardId, dueDate, priority, assignee } =
+    req.body;
 
-      // console.log('Incoming data:', { title, description, status, boardId, dueDate, priority, assignee });
+  // console.log('Incoming data:', { title, description, status, boardId, dueDate, priority, assignee });
 
-    try {
-      if (!title || !description || !dueDate || !boardId) {
-        return res
-          .status(400)
-          .json(
-            new ApiResponse(
-              400,
-              'Title, description, due date, and boardId are required',
-            ),
-          );
-      }
-
-      const currentDate = new Date();
-      if (new Date(dueDate) <= currentDate) {
-        return res
-          .status(400)
-          .json(new ApiResponse(400, 'Due date must be in the future'));
-      }
-
-      const boardObjectId = mongoose.Types.ObjectId.isValid(boardId) ? new mongoose.Types.ObjectId(boardId) : null;
-
-      if (!boardObjectId) {
-        return res.status(400).json({ message: "Invalid Board ID" });
-      }
-
-      const board = await Board.findById(boardObjectId);
-      if (!board) {
-        return res.status(404).json(new ApiResponse(404, 'Board not found'));
-      }
-      // console.log('Board found.');
-
-      let assignedUserId = null;
-      let assignedUserEmail = null;
-      if (assignee) {
-        console.log('Checking assignee');
-        const assignedUser = await User.find({ email: assignee });
-        console.log('Assigned user:', assignedUser);
-        if (assignedUser.length === 0) {
-          return res.status(404).json(new ApiResponse(404, 'Assignee not found'));
-        }
-        assignedUserId = assignedUser[0]._id;
-        assignedUserEmail = assignedUser.email; 
-      }
-
-      const taskCard = await TaskCard.create({
-        creator: req.user._id,
-        board: boardObjectId,
-        title,
-        description,
-        status: status || 'Todo',
-        dueDate,
-        priority: priority || 'Medium',
-        assignee: assignedUserId,
-      });
-
+  try {
+    if (!title || !description || !dueDate || !boardId) {
       return res
-        .status(201)
-        .json(new ApiResponse(201, { taskCard, assignedUserEmail }, 'Task created successfully'));
-    } catch (error) {
-      throw new ApiError(500, 'Error while creating task');
+        .status(400)
+        .json(
+          new ApiResponse(
+            400,
+            'Title, description, due date, and boardId are required',
+          ),
+        );
     }
-  };
+
+    const currentDate = new Date();
+    if (new Date(dueDate) <= currentDate) {
+      return res
+        .status(400)
+        .json(new ApiResponse(400, 'Due date must be in the future'));
+    }
+
+    const boardObjectId = mongoose.Types.ObjectId.isValid(boardId)
+      ? new mongoose.Types.ObjectId(boardId)
+      : null;
+
+    if (!boardObjectId) {
+      return res.status(400).json({ message: 'Invalid Board ID' });
+    }
+
+    const board = await Board.findById(boardObjectId);
+    if (!board) {
+      return res.status(404).json(new ApiResponse(404, 'Board not found'));
+    }
+    // console.log('Board found.');
+
+    let assignedUserId = null;
+    let assignedUserEmail = null;
+    if (assignee) {
+      console.log('Checking assignee');
+      const assignedUser = await User.find({ email: assignee });
+      console.log('Assigned user:', assignedUser);
+      if (assignedUser.length === 0) {
+        return res.status(404).json(new ApiResponse(404, 'Assignee not found'));
+      }
+      assignedUserId = assignedUser[0]._id;
+      assignedUserEmail = assignedUser.email;
+    }
+
+    let taskCard = await TaskCard.create({
+      creator: req.user._id,
+      board: boardObjectId,
+      title,
+      description,
+      status: status || 'Todo',
+      dueDate,
+      priority: priority || 'Medium',
+      assignee: assignedUserId,
+    });
+
+    taskCard.assignee = assignedUserEmail;
+
+    console.log('taskCard:', taskCard);
+    return res
+      .status(201)
+      .json(new ApiResponse(201, { taskCard }, 'Task created successfully'));
+  } catch (error) {
+    throw new ApiError(500, 'Error while creating task');
+  }
+};
 
 //Update a task card
 export const updateTaskCard = async (req, res) => {
@@ -127,13 +133,26 @@ export const getTaskCardsByBoard = async (req, res) => {
       return res.status(404).json(new ApiResponse(404, 'Board not found'));
     }
 
-    const tasks = await TaskCard.find({ board: boardId }).sort({ createdAt: -1 });
+    let tasks = await TaskCard.find({ board: boardId })
+      .populate({
+        path: 'assignee',
+        select: 'email',
+      })
+      .sort({ createdAt: -1 });
 
     if (!tasks || tasks.length === 0) {
       return res
         .status(404)
         .json(new ApiResponse(404, 'No tasks found for this board'));
     }
+
+    tasks = tasks.map((task) => {
+      const newTask = JSON.parse(JSON.stringify(task));
+      return {
+        ...newTask,
+        assignee: newTask.assignee?.email,
+      };
+    });
 
     return res
       .status(200)

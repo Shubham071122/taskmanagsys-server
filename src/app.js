@@ -12,7 +12,7 @@ const app = express();
 
 app.use(
     cors({
-      origin: 'http://localhost:3000', 
+      origin: process.env.CORS_ORIGIN, 
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'Cookies', 'Cookie'],
       exposedHeaders: ['Set-Cookie'],
