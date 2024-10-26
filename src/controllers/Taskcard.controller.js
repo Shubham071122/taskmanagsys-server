@@ -13,7 +13,7 @@ function formatDate(dueDate) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
   
-  return `${day}/${month}/${year}`;
+  return `${year}-${month}-${day}`;
 }
 
 function convertDateFormat(dateStr) {
@@ -107,11 +107,11 @@ export const updateTaskCard = async (req, res) => {
       return res.status(404).json(new ApiResponse(404, 'Task not found'));
     }
     console.log("TASK:",taskCard);
-    const convertedDate = convertDateFormat(dueDate);
-    console.log("convertedDate:",convertedDate)
+    // const convertedDate = convertDateFormat(dueDate);
+    // console.log("convertedDate:",convertedDate)
     
     const currentDate = new Date();
-    if (dueDate && new Date(convertedDate) <= currentDate) {
+    if (dueDate && new Date(dueDate) <= currentDate) {
       return res
       .status(400)
       .json(new ApiResponse(400, 'Due date must be in the future'));
@@ -132,12 +132,13 @@ export const updateTaskCard = async (req, res) => {
     taskCard.title = title || taskCard.title;
     taskCard.description = description || taskCard.description;
     taskCard.status = status || taskCard.status;
-    taskCard.dueDate = convertedDate || taskCard.dueDate;
+    taskCard.dueDate = dueDate || taskCard.dueDate;
     taskCard.priority = priority || taskCard.priority;
     taskCard.assignee = assigneeId || taskCard.assignee;
-
+    
     await taskCard.save();
-
+    
+    // taskCard.dueDate = dueDate || taskCard.dueDate;
     console.log("taskCarddd:",taskCard);
 
     return res
