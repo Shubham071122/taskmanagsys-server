@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+dotenv.config({
+    path: './.env'
+})
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -11,17 +15,17 @@ const app = express();
 
 
 app.use(
-    cors({
-      origin: process.env.CORS_ORIGIN, 
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'Cookies', 'Cookie'],
-      exposedHeaders: ['Set-Cookie'],
-      credentials: true,
-    }),
-  );
+  cors({
+    origin: process.env.CORS_ORIGIN,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookies', 'Cookie'],
+    exposedHeaders: ['Set-Cookie'],
+    credentials: true,
+  }),
+);
 
 // Handle preflight requests
-app.options('*', cors());
+// app.options('*', cors());
 
 app.get('/', (req, res) => {
   return res.send('Welcome to taskmanagement service');
@@ -88,11 +92,11 @@ app.use(cookieParser());
 import userRouter from './routes/User.route.js';
 import boardRouter from './routes/Board.route.js';
 import taskcardRouter from './routes/Taskcard.route.js';
-import authRoutes from "./routes/Auth.route.js";
+import authRoutes from './routes/Auth.route.js';
 
 app.use('/api/user', userRouter);
 app.use('/api/board', boardRouter);
 app.use('/api/taskcard', taskcardRouter);
-app.use('/auth',authRoutes)
+app.use('/auth', authRoutes);
 
 export { app };

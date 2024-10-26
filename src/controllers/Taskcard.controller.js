@@ -6,6 +6,22 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { json } from 'express';
 
+//Formate Time:
+function formatDate(dueDate) {
+  const date = new Date(dueDate);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+}
+
+function convertDateFormat(dateStr) {
+  const [day, month, year] = dateStr.split('/');
+
+  return `${year}-${month}-${day}`;
+}
+
 // Create a new task card
 export const createTaskCard = async (req, res) => {
   const { title, description, status, boardId, dueDate, priority, assignee } =
@@ -44,14 +60,12 @@ export const createTaskCard = async (req, res) => {
     if (!board) {
       return res.status(404).json(new ApiResponse(404, 'Board not found'));
     }
-    // console.log('Board found.');
 
     let assignedUserId = null;
     let assignedUserEmail = null;
     if (assignee) {
-      console.log('Checking assignee');
       const assignedUser = await User.find({ email: assignee });
-      console.log('Assigned user:', assignedUser);
+      // console.log('Assigned user:', assignedUser);
       if (assignedUser.length === 0) {
         return res.status(404).json(new ApiResponse(404, 'Assignee not found'));
       }
@@ -72,7 +86,7 @@ export const createTaskCard = async (req, res) => {
 
     taskCard.assignee = assignedUserEmail;
 
-    console.log('taskCard:', taskCard);
+    // console.log('taskCard:', taskCard);
     return res
       .status(201)
       .json(new ApiResponse(201, { taskCard }, 'Task created successfully'));
@@ -85,6 +99,7 @@ export const createTaskCard = async (req, res) => {
 export const updateTaskCard = async (req, res) => {
   const { title, description, status, dueDate, priority, assignee } = req.body;
   const { cardId } = req.params;
+  // console.log("updt:",req.body);
 
   try {
     let taskCard = await TaskCard.findById(cardId);
@@ -99,22 +114,29 @@ export const updateTaskCard = async (req, res) => {
         .json(new ApiResponse(400, 'Due date must be in the future'));
     }
 
-    if (assignee) {
-      const assignedUser = await User.findById(assignee);
-      if (!assignedUser) {
+    const convertedDate = convertDateFormat(dueDate);
+    // console.log("convertedDate:",convertedDate)
+
+    let assigneeId = null;
+    if (assignee && !taskCard.assignee) {
+      const assignedUser = await User.find({email: assignee});
+      if (assignedUser.length === 0) {
         return res.status(404).json(new ApiResponse(404, 'Assignee not found'));
       }
+      assigneeId = assignedUser[0]._id;
     }
 
     // Updating fields
     taskCard.title = title || taskCard.title;
     taskCard.description = description || taskCard.description;
     taskCard.status = status || taskCard.status;
-    taskCard.dueDate = dueDate || taskCard.dueDate;
+    taskCard.dueDate = convertedDate || taskCard.dueDate;
     taskCard.priority = priority || taskCard.priority;
-    taskCard.assignee = assignee || taskCard.assignee;
+    taskCard.assignee = assigneeId || taskCard.assignee;
 
     await taskCard.save();
+
+    // console.log("taskCarddd:",taskCard);
 
     return res
       .status(200)
@@ -151,8 +173,10 @@ export const getTaskCardsByBoard = async (req, res) => {
       return {
         ...newTask,
         assignee: newTask.assignee?.email,
+        dueDate: formatDate(newTask.dueDate),
       };
     });
+
 
     return res
       .status(200)
