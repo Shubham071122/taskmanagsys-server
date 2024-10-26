@@ -10,7 +10,8 @@
 2. Install node module:
    ```bash
    npm install
-3.Creaate .env
-4. Now run :
+3.Creaate .env file on root folder:
+
+4.Now run :
    ```bash
-    npm run dev
+   npm run dev
