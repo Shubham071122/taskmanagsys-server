@@ -27,7 +27,7 @@ export const createTaskCard = async (req, res) => {
   const { title, description, status, boardId, dueDate, priority, assignee } =
     req.body;
 
-  // console.log('Incoming data:', { title, description, status, boardId, dueDate, priority, assignee });
+  console.log('Incoming data:', { title, description, status, boardId, dueDate, priority, assignee });
 
   try {
     if (!title || !description || !dueDate || !boardId) {
@@ -99,23 +99,25 @@ export const createTaskCard = async (req, res) => {
 export const updateTaskCard = async (req, res) => {
   const { title, description, status, dueDate, priority, assignee } = req.body;
   const { cardId } = req.params;
-  // console.log("updt:",req.body);
+  console.log("updt:",req.body);
 
   try {
     let taskCard = await TaskCard.findById(cardId);
     if (!taskCard) {
       return res.status(404).json(new ApiResponse(404, 'Task not found'));
     }
-
-    const currentDate = new Date();
-    if (dueDate && new Date(dueDate) <= currentDate) {
-      return res
-        .status(400)
-        .json(new ApiResponse(400, 'Due date must be in the future'));
-    }
-
+    console.log("TASK:",taskCard);
     const convertedDate = convertDateFormat(dueDate);
-    // console.log("convertedDate:",convertedDate)
+    console.log("convertedDate:",convertedDate)
+    
+    const currentDate = new Date();
+    if (dueDate && new Date(convertedDate) <= currentDate) {
+      return res
+      .status(400)
+      .json(new ApiResponse(400, 'Due date must be in the future'));
+    }
+    console.log("TASK2:",currentDate);
+
 
     let assigneeId = null;
     if (assignee && !taskCard.assignee) {
@@ -136,7 +138,7 @@ export const updateTaskCard = async (req, res) => {
 
     await taskCard.save();
 
-    // console.log("taskCarddd:",taskCard);
+    console.log("taskCarddd:",taskCard);
 
     return res
       .status(200)
